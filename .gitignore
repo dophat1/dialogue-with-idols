@@ -1,6 +1,9 @@
 /.venv
 
-data/processed/*.json
-data/raw/*.html
+*.json
+*.html
+*.npz
 
 evals/*.json
+
+/experiment
