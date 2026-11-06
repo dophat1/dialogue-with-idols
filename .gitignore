@@ -1,0 +1,6 @@
+/.venv
+
+data/processed/*.json
+data/raw/*.html
+
+evals/*.json
