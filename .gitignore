@@ -6,4 +6,12 @@
 
 evals/*.json
 
+evals/cases
+
 /experiment
+
+src/__pycache__
+
+.env
+
+data/runs/
