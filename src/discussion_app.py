@@ -175,10 +175,44 @@ if submitted:
     except (OSError, RuntimeError, ValueError, KeyError) as error:
         st.error(f"Could not complete the discussion: {error}")
 
+def get_conversation_chain(latest_run, available_runs):
+    chain = []
+    visited = set()
+    current = latest_run
+    warning = None
 
-run = st.session_state.get("discussion_run")
+    while current is not None:
+        run_id = current["run_id"]
 
-if run:
+        if run_id in visited:
+            warning = "A circular parent link was found."
+            break
+
+        visited.add(run_id)
+        chain.append(current)
+
+        parent_id = current.get("parent_run_id")
+
+        if not parent_id:
+            break
+
+        parent = available_runs.get(parent_id)
+
+        if parent is None:
+            warning = (
+                "An earlier turn is unavailable. "
+                "Showing the turns that could be loaded."
+            )
+            break
+
+        current = parent
+
+    # We collected newest first; display oldest first.
+    chain.reverse()
+    return chain, warning
+
+
+def render_run(run):
     answer = run["answer"]
     evidence = {
         source["source_id"]: source
@@ -186,7 +220,7 @@ if run:
     }
 
     st.divider()
-    st.subheader("Discussion")
+    st.caption(f"Saved: {run['created_at']}")
     st.write("Your request:")
     st.text(run["question"])
 
@@ -219,7 +253,11 @@ if run:
                     "https://www.gutenberg.org/cache/epub/1232/"
                     f"pg1232-images.html#{chapter_id}"
                 )
-                st.link_button("Open original chapter", source_url)
+                st.link_button(
+                    f"Open chapter · {run['run_id'][:6]} · "
+                    f"argument {number} · {source_id}",
+                    source_url,
+                )
 
     st.markdown("**A question to consider**")
     st.text(answer["follow_up_question"])
@@ -229,3 +267,29 @@ if run:
         st.write(f"Model: {run['generation_model_returned']}")
         st.write(f"Research query: {run['research_query']}")
         st.json(run["usage"])
+
+active_run = st.session_state.get("discussion_run")
+
+if active_run:
+    available_runs = {
+        saved["run_id"]: saved
+        for saved in saved_runs.values()
+    }
+
+    # A newly generated run may not be in the sidebar's file list yet.
+    available_runs[active_run["run_id"]] = active_run
+
+    conversation, warning = get_conversation_chain(
+        active_run,
+        available_runs,
+    )
+
+    st.header("Conversation")
+    st.caption(f"{len(conversation)} saved turn(s)")
+
+    if warning:
+        st.warning(warning)
+
+    for turn_number, turn in enumerate(conversation, start=1):
+        st.subheader(f"Turn {turn_number}")
+        render_run(turn)
