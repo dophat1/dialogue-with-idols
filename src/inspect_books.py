@@ -1,67 +1,117 @@
+import argparse
 from pathlib import Path
+
 from bs4 import BeautifulSoup
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-BOOK_PATH = PROJECT_ROOT / "data" / "raw" / "the_prince.html"
-
-html = BOOK_PATH.read_text(encoding="utf-8")
-soup = BeautifulSoup(html, "html.parser")
 
 def clean_text(element):
     return " ".join(element.get_text().split())
 
 
-headings = soup.find_all(["h1", "h2", "h3"])
+def inspect_heading(heading, sample_size):
+    print("\n--- SELECTED HEADING HTML ---")
+    print(heading.prettify())
 
-for heading in headings:
-    title = heading.get_text(" ", strip=True)
-    anchor = heading.get("id")
+    print("\n--- PARENT ELEMENT ---")
+    print(heading.parent.name, heading.parent.attrs)
 
-    print(f"{heading.name} | id={anchor} | {title}")
+    print("\n--- FOLLOWING SIBLING ELEMENTS ---")
+    for element in heading.find_next_siblings(limit=sample_size):
+        print(element.prettify()[:1800])
 
 
-first_chapter = next(
-    heading
-    for heading in soup.find_all("h2")
-    if heading.get_text(" ", strip=True).startswith("CHAPTER I.")
-)
+def inspect_paragraph(paragraph):
+    print("\n--- FIRST FOLLOWING PARAGRAPH: RAW HTML ---")
+    print(str(paragraph))
 
-print("\n--- FIRST CHAPTER HTML ---")
-print(first_chapter.prettify())
+    print("\n--- NORMALIZED TEXT ---")
+    print(clean_text(paragraph))
 
-print("\n--- PARENT ELEMENT ---")
-print(first_chapter.parent.name, first_chapter.parent.attrs)
+    print("\n--- TEXT FRAGMENTS ---")
+    for fragment in paragraph.strings:
+        print(repr(fragment))
 
-print("\n--- FIRST THREE FOLLOWING ELEMENTS ---")
-for element in list(first_chapter.next_siblings):
-    # HTML whitespace also appears as a sibling; skip it.
-    if not getattr(element, "name", None):
-        continue
 
-    print(element.prettify()[:1200])
+def main():
+    parser = argparse.ArgumentParser(
+        description="Inspect an HTML document's headings and structure."
+    )
+    parser.add_argument(
+        "html_path",
+        type=Path,
+        help="Path to a downloaded HTML file",
+    )
+    parser.add_argument(
+        "--heading",
+        help="Case-insensitive text to find within a heading",
+    )
+    parser.add_argument(
+        "--sample",
+        type=int,
+        default=5,
+        help="Number of following sibling elements to display",
+    )
+    args = parser.parse_args()
 
-    # Count only actual HTML elements.
-    # We only need a small sample for inspection.
-    if element == first_chapter.find_next_siblings(limit=3)[-1]:
-        break
+    if not args.html_path.is_file():
+        parser.error(f"File not found: {args.html_path}")
 
-chapter_anchor = soup.find(id="chap17")
-chapter = chapter_anchor.find_parent("div", class_="chapter")
+    if args.sample < 1:
+        parser.error("--sample must be at least 1")
 
-for paragraph in chapter.find_all("p", recursive=False)[:10]:
-    text = " ".join(paragraph.get_text().split())
+    html = args.html_path.read_text(encoding="utf-8")
+    soup = BeautifulSoup(html, "html.parser")
+    headings = soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"])
 
-    print("\nAttributes:", paragraph.attrs)
-    print("Text:", text[:250])
+    print(f"File: {args.html_path.resolve()}")
+    print(f"Headings found: {len(headings)}")
+    print("\n--- HEADINGS ---")
 
-print("\n--- ORIGINAL FIRST PARAGRAPH HTML ---")
-print(chapter.find("p", recursive=False).prettify())
+    for number, heading in enumerate(headings, start=1):
+        nested_ids = [
+            element["id"]
+            for element in heading.find_all(id=True)
+        ]
 
-first_paragraph = chapter.find("p", recursive=False)
+        print(
+            f"{number}. {heading.name} | "
+            f"id={heading.get('id')} | "
+            f"nested_ids={nested_ids} | "
+            f"{clean_text(heading)}"
+        )
 
-print("\n--- RAW PARAGRAPH HTML ---")
-print(str(first_paragraph))
+    if not args.heading:
+        print("\nUse --heading to inspect a heading in more detail.")
+        return
 
-print("\n--- TEXT FRAGMENTS ---")
-for fragment in first_paragraph.strings:
-    print(repr(fragment))
+    matches = [
+        heading
+        for heading in headings
+        if args.heading.casefold() in clean_text(heading).casefold()
+    ]
+
+    if not matches:
+        print(f"\nNo heading matched: {args.heading!r}")
+        return
+
+    if len(matches) > 1:
+        print(
+            f"\nFound {len(matches)} matching headings. "
+            "Use a more specific --heading value."
+        )
+        return
+
+    heading = matches[0]
+    inspect_heading(heading, args.sample)
+
+    # This is a diagnostic sample, not a chapter-boundary rule.
+    paragraph = heading.find_next("p")
+
+    if paragraph is not None:
+        inspect_paragraph(paragraph)
+    else:
+        print("\nNo paragraph follows this heading.")
+
+
+if __name__ == "__main__":
+    main()

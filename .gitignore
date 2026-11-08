@@ -1,26 +1,31 @@
-/.venv
-
-*.json
-*.html
-*.npz
-
+# Private configuration
 .env
+.env.*
+!.env.example
+.streamlit/secrets.toml
 
+# Python environments and generated caches
+.venv/
 __pycache__/
-data/raw/
-data/processed/
-data/runs/
-data/reviews/
-data/review_cases/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
 
-evals/*.json
-evals/*.txt
-evals/cases
+# Local books, indexes, conversations, and private reports
+/data/
+/docs/
+/experiment/
+/project_summary.txt
+/extraction_report.txt
 
-/experiment
+# Generated evaluation artifacts
+/evals/*.json
+/evals/*.txt
+/evals/cases/
+*.npz
+*.log
 
-src/__pycache__
-
-.env
-
-data/runs/
+# Operating-system metadata
+.DS_Store
+Thumbs.db

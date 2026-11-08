@@ -4,6 +4,9 @@ from sentence_transformers import SentenceTransformer
 
 from answer_question import generate_answer
 from semantic_search import load_search_data
+from library import run_book_id, saved_source_link
+from library_ui import library_controls, book_details, cached_embedder, render_passages
+from retrieval import retrieve
 
 import json
 from pathlib import Path
@@ -17,20 +20,27 @@ st.set_page_config(
 
 
 @st.cache_resource
-def load_embedder(model_name):
-    return SentenceTransformer(model_name, device="cpu")
+def load_embedder(model_name, language=None):
+    return cached_embedder(model_name, language)
 
 
 st.title("Dialogue with Idols")
-st.caption("Discuss The Prince · W. K. Marriott translation")
+selected_book = library_controls()
+if st.session_state.get('active_book') != selected_book:
+    st.session_state.pop('discussion_run', None)
+    st.session_state.pop('retrieved_preview', None)
+    st.session_state['active_book'] = selected_book
 st.caption(
     "Your request and selected source paragraphs are sent to OpenAI "
     "when you generate an answer."
 )
 
 try:
-    search_data = load_search_data()
-    embedder = load_embedder(search_data[-1])
+    search_data = load_search_data(selected_book)
+    embedder = load_embedder(search_data[-1], search_data.book.get('language'))
+    book = search_data.book
+    st.caption(f"{book['title']} · {book['author']} · Translation: {book.get('translator') or 'not specified'}")
+    book_details(book)
 except (OSError, ValueError, KeyError) as error:
     st.error(f"Could not load the book: {error}")
     st.stop()
@@ -60,7 +70,8 @@ for path in RUN_DIR.glob("*.json"):
         if not required_fields.issubset(saved):
             raise ValueError("Incomplete saved run")
 
-        saved_runs[path.stem] = saved
+        if run_book_id(saved) == selected_book:
+            saved_runs[path.stem] = saved
 
     except (OSError, ValueError, TypeError):
         skipped_files += 1
@@ -118,7 +129,7 @@ with st.form("discussion"):
     question = st.text_area(
         "Your question or opinion",
         placeholder=(
-            "A ruler should always prioritize being loved. "
+            "What trade-offs does this book describe? "
             "Challenge my position."
         ),
         max_chars=8000,
@@ -126,7 +137,7 @@ with st.form("discussion"):
 
     research_query = st.text_input(
         "Search the book for",
-        placeholder="A ruler should always prioritize being loved.",
+        placeholder="Name the subject you want to investigate.",
         help=(
             "Optional. Describe the subject to research, "
             "without instructions about how to answer."
@@ -140,11 +151,31 @@ with st.form("discussion"):
     )
 
     st.caption(
-        "For follow-ups, use a self-contained research query "
-        "that names the subject you want to investigate."
+        "For follow-ups, the previous research topic is included automatically. "
+        "You can enter a specific research query to focus the search."
     )
 
+    preview_submitted = st.form_submit_button("Find passages")
     submitted = st.form_submit_button("Generate cited answer")
+
+
+if preview_submitted:
+    try:
+        query = research_query.strip() or question.strip()
+        if follow_up and current_run and not research_query.strip():
+            query = current_run.get('research_query', current_run['question']) + ' ' + query
+        with st.spinner('Finding relevant passages...'):
+            results = retrieve(search_data, query, embedder)
+        st.session_state['retrieved_preview'] = {'book_id': selected_book, 'query': query, 'results': results}
+    except (ValueError, RuntimeError) as error:
+        st.session_state.pop('retrieved_preview', None)
+        st.warning(str(error))
+
+preview = st.session_state.get('retrieved_preview')
+if preview and preview['book_id'] == selected_book:
+    st.subheader('Retrieved passages')
+    st.caption(f"Search: {preview['query']}")
+    render_passages(search_data, preview['results'])
 
 
 if submitted:
@@ -221,6 +252,9 @@ def render_run(run):
 
     st.divider()
     st.caption(f"Saved: {run['created_at']}")
+    metadata = run.get('document_metadata', {})
+    if metadata:
+        st.caption(f"{metadata['title']} · {metadata['author']}")
     st.write("Your request:")
     st.text(run["question"])
 
@@ -246,18 +280,18 @@ def render_run(run):
             ):
                 st.caption(source["chapter"])
                 st.caption(f"Content type: {source['content_type']}")
+                if source.get('excerpted'):
+                    st.caption(f"Excerpt from paragraph characters {source['char_start']}–{source['char_end']}")
+                if source.get('source_locator'):
+                    st.caption(source['source_locator'])
                 st.text(source["text"])
 
-                chapter_id = source_id.split(":")[1]
-                source_url = (
-                    "https://www.gutenberg.org/cache/epub/1232/"
-                    f"pg1232-images.html#{chapter_id}"
-                )
-                st.link_button(
-                    f"Open chapter · {run['run_id'][:6]} · "
-                    f"argument {number} · {source_id}",
-                    source_url,
-                )
+                source_url = saved_source_link(run, source)
+                if source_url:
+                    st.link_button(
+                        f"Open source · {run['run_id'][:6]} · argument {number} · {source_id}",
+                        source_url,
+                    )
 
     st.markdown("**A question to consider**")
     st.text(answer["follow_up_question"])

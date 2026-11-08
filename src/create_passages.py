@@ -1,31 +1,28 @@
+import argparse
 import json
 from pathlib import Path
 
 from sentence_transformers import SentenceTransformer
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = PROJECT_ROOT / "data" / "processed"
+try:
+    from .library import DEFAULT_EMBEDDING_MODEL, SEARCHABLE_TYPES, fingerprint
+except ImportError:
+    from library import DEFAULT_EMBEDDING_MODEL, SEARCHABLE_TYPES, fingerprint
 
 WINDOW = 220
 OVERLAP = 40
 
 
-def main():
-    model = SentenceTransformer(
-        "sentence-transformers/all-MiniLM-L6-v2",
-        device="cpu",
-    )
-    tokenizer = model.tokenizer
-
-    book = json.loads(
-        (DATA_DIR / "the_prince.json").read_text(encoding="utf-8")
-    )
-
+def create_passages(book, tokenizer, max_seq_length, model_name=DEFAULT_EMBEDDING_MODEL):
+    window = min(WINDOW, max_seq_length - 2)
+    if window < 8:
+        raise ValueError('Embedding model input limit is too small')
+    overlap = min(OVERLAP, window // 3)
     passages = []
 
     for chapter in book["chapters"]:
         for paragraph in chapter["paragraphs"]:
-            if paragraph["content_type"] == "footnote":
+            if paragraph["content_type"] not in SEARCHABLE_TYPES:
                 continue
 
             text = paragraph["text"]
@@ -42,24 +39,18 @@ def main():
             part = 1
 
             while start < len(offsets):
-                end = min(start + WINDOW, len(offsets))
+                end = min(start + window, len(offsets))
 
                 char_start = offsets[start][0]
-                char_end = offsets[end - 1][1]
-                passage_text = text[char_start:char_end]
-
-                # Recheck the actual substring, including special tokens.
-                token_count = len(tokenizer.encode(
-                    passage_text,
-                    add_special_tokens=True,
-                    truncation=False,
-                ))
-
-                if token_count > model.max_seq_length:
-                    raise ValueError(
-                        f"Passage exceeds model limit: "
-                        f"{paragraph['paragraph_id']}, part {part}"
-                    )
+                while True:
+                    char_end = offsets[end - 1][1]
+                    passage_text = text[char_start:char_end]
+                    token_count = len(tokenizer.encode(passage_text, add_special_tokens=True, truncation=False))
+                    if token_count <= max_seq_length:
+                        break
+                    end -= 1
+                    if end <= start:
+                        raise ValueError('A token cannot fit in the embedding model input limit')
 
                 passages.append({
                     "passage_id": (
@@ -78,28 +69,41 @@ def main():
                 if end == len(offsets):
                     break
 
-                start = end - OVERLAP
+                start = max(start + 1, end - overlap)
                 part += 1
 
-    output = {
+    if not passages:
+        raise ValueError("No body or verse passages to index")
+
+    return {
         "book_id": book["book_id"],
-        "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+        "book_sha256": fingerprint(book),
+        "source_sha256": book.get("source_sha256"),
+        "indexed_content_types": sorted(SEARCHABLE_TYPES),
+        "embedding_model": model_name,
         "chunking_version": "token-window-v1",
-        "window_tokens": WINDOW,
-        "overlap_tokens": OVERLAP,
+        "window_tokens": window,
+        "overlap_tokens": overlap,
         "passages": passages,
     }
 
-    output_path = DATA_DIR / "the_prince_passages.json"
-    output_path.write_text(
-        json.dumps(output, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-    print(f"Created {len(passages)} passages")
-    print(f"Largest passage: {max(p['token_count'] for p in passages)} tokens")
-    print(f"Saved to: {output_path}")
 
 
-if __name__ == "__main__":
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('book_path', type=Path)
+    parser.add_argument('--model', default=DEFAULT_EMBEDDING_MODEL)
+    args = parser.parse_args()
+    book_path = args.book_path.resolve()
+    book = json.loads(book_path.read_text(encoding='utf-8'))
+    model = SentenceTransformer(args.model, device='cpu')
+    output = create_passages(book, model.tokenizer, model.max_seq_length, args.model)
+    output_path = book_path.with_name(f'{book_path.stem}_passages.json')
+    output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding='utf-8')
+    print(f"Created {len(output['passages'])} passages")
+    print(f"Largest passage: {max(p['token_count'] for p in output['passages'])} tokens")
+    print(f'Saved to: {output_path}')
+
+
+if __name__ == '__main__':
     main()
