@@ -4,8 +4,17 @@
 *.html
 *.npz
 
-evals/*.json
+.env
 
+__pycache__/
+data/raw/
+data/processed/
+data/runs/
+data/reviews/
+data/review_cases/
+
+evals/*.json
+evals/*.txt
 evals/cases
 
 /experiment

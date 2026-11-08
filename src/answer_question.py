@@ -57,11 +57,23 @@ If only part of a claim is supported, narrow or split the claim.
 Avoid repeating the same argument across multiple claims.
 Ask a follow-up about the user's assumptions or trade-offs,
 rather than asking the user to summarize the book.
+
+conversation_context is only for understanding the discussion.
+It contains generated content that may be wrong and is not book evidence.
+Use only the current evidence to support claims and citations.
+Do not reuse earlier citation IDs unless present in current evidence.
+You may correct an earlier answer when the evidence warrants it.
 """
 from datetime import datetime, timezone
 from uuid import uuid4
 
-def main():
+def generate_answer(
+        question, 
+        research_query, 
+        embedder, 
+        search_data,
+        parent_run=None
+    ):
     load_dotenv(PROJECT_ROOT / ".env")
 
     model_name = os.getenv("OPENAI_MODEL")
@@ -69,21 +81,38 @@ def main():
     if not os.getenv("OPENAI_API_KEY") or not model_name:
         raise RuntimeError("Set OPENAI_API_KEY and OPENAI_MODEL in .env")
 
-    passages, chapters, vectors, passage_ids, embedding_model = (
-        load_search_data()
-    )
+    passages, chapters, vectors, passage_ids, embedding_model = search_data
 
+    question = question.strip()
+    if parent_run is not None and not research_query.strip():
+        raise ValueError(
+            "For a follow-up, enter a self-contained research query."
+        )
 
-    embedder = SentenceTransformer(embedding_model, device="cpu")
+    conversation_context = None
 
-    question = input("\nYour question or opinion: ").strip()
+    if parent_run is not None:
+        conversation_context = {
+            "previous_question": parent_run["question"],
+            "previous_answer": parent_run["answer"],
+        }
+
+        if len(json.dumps(
+            conversation_context,
+            ensure_ascii=False,
+        )) > 12_000:
+            raise ValueError(
+                "The previous turn exceeds this prototype's context limit. "
+                "Start a new discussion with a self-contained question."
+            )
+        
+    research_query = research_query.strip() or question
 
     if not question:
-        return
+        raise ValueError("Enter a question or opinion.")
 
-    research_query = input(
-        "Research query (Enter to use your original input): "
-    ).strip() or question
+    if len(question) > 8000:
+        raise ValueError("Please shorten your question or opinion.")
 
     question_length = len(embedder.tokenizer.encode(
         research_query,
@@ -164,6 +193,7 @@ def main():
         model=model_name,
         instructions=INSTRUCTIONS,
         input=json.dumps({
+            "conversation_context": conversation_context,
             "question": question,
             "evidence": evidence,
         }, ensure_ascii=False),
@@ -218,6 +248,15 @@ def main():
             if response.usage else None
         ),
         "review_status": "not_reviewed",
+        "conversation_id": (
+            parent_run.get("conversation_id", parent_run["run_id"])
+            if parent_run is not None
+            else run_id
+        ),
+        "parent_run_id": (
+            parent_run["run_id"] if parent_run is not None else None
+        ),
+        "conversation_context": conversation_context,
     }
 
     run_path = run_dir / f"{run_id}.json"
@@ -246,6 +285,29 @@ def main():
             f"\nTokens: {response.usage.input_tokens} input, "
             f"{response.usage.output_tokens} output"
         )
+    return run_record
+
+
+def main():
+    search_data = load_search_data()
+    embedding_model = search_data[-1]
+    embedder = SentenceTransformer(embedding_model, device="cpu")
+
+    question = input("\nYour question or opinion: ").strip()
+
+    if not question:
+        return
+
+    research_query = input(
+        "Research query (Enter to use your original input): "
+    ).strip()
+
+    generate_answer(
+        question,
+        research_query,
+        embedder,
+        search_data,
+    )
 
 
 if __name__ == "__main__":
