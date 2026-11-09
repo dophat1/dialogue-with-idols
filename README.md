@@ -1,7 +1,28 @@
 # Dialogue with Idols
 
-Import a Project Gutenberg book, search its text, and ask questions with cited
-source passages in a local Streamlit app.
+![A meme about Plato writing Socratic dialogues](platodialogue.jpg)
+
+## Preface
+
+I have always admired great thinkers and wished I could sit down and talk with
+them. Most lived long before us, so that conversation is impossible in the
+literal sense. Their writing, though, still gives us something to respond to.
+That led me to wonder whether AI could help me explore their ideas through a
+conversation grounded in their own works.
+
+Project Gutenberg makes many of those works freely available in formats that
+are practical to process. I started Dialogue with Idols as a way to bring that
+personal idea a little closer: choose a book, ask a question, and see the
+passages behind the answer. This is an early RAG demo, not a recreation of any
+thinker's mind or voice. I plan to keep improving how it reads, retrieves, and
+discusses their work.
+
+The name is a playful nod to Nietzsche's *Twilight of the Idols*. If the idols
+are gone, perhaps I can bring them back for a conversation—at least through
+the words they left behind.
+
+Today, the local Streamlit app lets you import a Project Gutenberg book, search
+its text, and ask questions with cited source passages.
 
 ## Start the app
 
@@ -136,3 +157,32 @@ checks are development evidence, not a comprehensive accuracy benchmark.
 It makes a separate OpenAI request and remains advisory. Reusable extraction,
 inspection, chunking, and embedding commands remain in `src/`; obsolete demo
 scripts and generated caches are excluded from the published project.
+
+## Where this could go next
+
+The long-term aim is a conversation with great thinkers through their works.
+The current app is a single-book RAG demo; these are proposed improvements, in
+rough priority order:
+
+1. **Measure quality.** Build a set of questions with human-identified relevant
+   passages. Measure whether retrieval finds them and whether each answer claim
+   is supported by its citations. Use those results to guide later changes.
+2. **Make the exchange feel more like a dialogue.** Offer modes such as
+   *explain an idea*, *challenge my view*, and *compare arguments*. Keep the
+   book's words distinct from the AI's interpretation, and let the user follow
+   each response back to its source.
+3. **Add a focused research agent.** For difficult questions, let one agent
+   search the selected book, read passages, identify gaps, and search again
+   before answering. Show the searches and evidence in the interface, with
+   limits on steps, time, and API cost. Compare its results with the existing
+   retrieval flow before making it the default.
+4. **Compare thinkers across books.** Search several selected works and present
+   differences in their arguments, with clear attribution and separate
+   citations for each book.
+5. **Improve the reading experience.** Open citations at the relevant passage,
+   show more surrounding text, and let readers save and revisit a line of
+   inquiry.
+
+These ideas are plans, not features in the current release. The guiding rule
+is to make the conversation more useful while keeping the underlying texts
+visible and the limits of the AI clear.
