@@ -83,7 +83,8 @@ def generate_answer(
         research_query,
         embedder,
         search_data,
-        parent_run=None
+        parent_run=None,
+        save_run=True,
     ):
     book = search_data.book
     if parent_run is not None and run_book_id(parent_run) != book['book_id']:
@@ -186,8 +187,6 @@ def generate_answer(
         raise ValueError("Answer has no supported claims. No answer displayed.")
 
     run_id = uuid4().hex
-    run_dir = PROJECT_ROOT / "data" / "runs"
-    run_dir.mkdir(parents=True, exist_ok=True)
 
     run_record = {
         "run_id": run_id,
@@ -222,13 +221,15 @@ def generate_answer(
         "conversation_context": conversation_context,
     }
 
-    run_path = run_dir / f"{run_id}.json"
-    run_path.write_text(
-        json.dumps(run_record, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-    print(f"\nSaved run: {run_path}")
+    if save_run:
+        run_dir = PROJECT_ROOT / "data" / "runs"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        run_path = run_dir / f"{run_id}.json"
+        run_path.write_text(
+            json.dumps(run_record, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"\nSaved run: {run_path}")
     print(f"\nEvidence status: {answer.evidence_status}")
     print(answer.explanation)
 
