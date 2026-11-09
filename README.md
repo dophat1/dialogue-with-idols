@@ -158,6 +158,44 @@ It makes a separate OpenAI request and remains advisory. Reusable extraction,
 inspection, chunking, and embedding commands remain in `src/`; obsolete demo
 scripts and generated caches are excluded from the published project.
 
+## First quality evaluation
+
+On 2026-11-10, I ran a first evaluation with 20 questions across *The Prince*,
+*The Art of War*, *Alice's Adventures in Wonderland*, and *The Raven*. The
+questions and expected source paragraphs were prepared by reading selected
+passages before running retrieval. Ten cases were marked for development and
+ten for a first holdout check; each split had eight answerable and two
+unanswerable questions. The labels and claim review were AI-assisted and still
+need independent human review. This small set is a diagnostic check, not a
+general accuracy estimate.
+
+| Check | Result |
+| --- | ---: |
+| Preselected evidence found in the first six results | 14/16 answerable questions (87.5%) |
+| All preselected paragraphs found in the first six | 13/16 (81.3%) |
+| Mean reciprocal rank of the first preselected paragraph | 0.557 |
+| Unanswerable questions answered with insufficient evidence and no claims | 4/4 |
+| Answers produced without a validation error | 19/20 |
+| Generated claims judged fully / partly / unsupported | 23 / 6 / 1 out of 30 |
+
+Two questions missed their preselected source paragraph. The mercenaries
+question in *The Prince* retrieved other passages that answered it, revealing
+an incomplete gold label. The *Art of War* question about what is better than
+winning every battle missed the passage about breaking resistance without
+fighting. Its generated answer discussed preserving an enemy country instead,
+which did not answer the question. One other answer was rejected by the app's
+validation path; the exact cause was not captured in that run. Some accepted
+answers added details or certainty beyond their citations. These are concrete
+targets for improving retrieval and claim checking.
+
+The local evaluation runner is
+`.\.venv\Scripts\python.exe -m evals.quality_eval` (add `--answers` for paid API
+generation). It reads a locally curated question file and writes
+full retrieved passages and model outputs to Git-ignored `docs/` files. That
+question file and the detailed transcript are local evaluation artifacts and
+are not included in a fresh clone. Future portfolio claims should follow
+human review of the labels and a larger, more varied set of books and questions.
+
 ## Where this could go next
 
 The long-term aim is a conversation with great thinkers through their works.
