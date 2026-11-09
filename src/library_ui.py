@@ -1,4 +1,5 @@
 """Shared library/import controls for the two existing Streamlit entry points."""
+import os
 import streamlit as st
 
 from ingest import import_bytes, import_source, load_embedder
@@ -18,36 +19,42 @@ def cached_embedder(model_name=DEFAULT_EMBEDDING_MODEL, language=None):
 
 
 def library_controls():
-    with st.sidebar:
-        st.header('Add a Gutenberg book')
-        with st.form('import_book'):
-            address = st.text_input('Gutenberg URL or book number', placeholder='https://www.gutenberg.org/ebooks/11')
-            uploaded = st.file_uploader('Or upload a downloaded book', type=['html', 'htm', 'xhtml', 'txt', 'utf-8', 'epub', 'zip'])
-            st.caption('HTML, plain text, EPUB, or text/HTML ZIP · Up to 50 MB. Importing builds a local search index.')
-            submitted = st.form_submit_button('Import and index')
-        if submitted:
-            if not address.strip() and uploaded is None:
-                st.warning('Paste a Gutenberg URL/book number or choose a file.')
-            else:
-                try:
-                    with st.status('Preparing book...', expanded=True) as status:
-                        callback = lambda message: status.update(label=message)
-                        # Reuse one cached multilingual model for imports and questions.
-                        model = cached_embedder()
-                        if uploaded is not None:
-                            book = import_bytes(uploaded.getvalue(), uploaded.name, embedder=model, progress=callback)
-                        else:
-                            book = import_source(address.strip(), embedder=model, progress=callback)
-                        status.update(label=f"Ready: {book['title']}", state='complete', expanded=False)
-                    st.session_state['source_book'] = book['book_id']
-                    st.session_state['import_message'] = f"Imported {book['title']}. You can now search or ask a question."
-                    st.rerun()
-                except (OSError, ValueError, RuntimeError) as error:
-                    st.error(f'Import could not finish: {error}')
-        st.caption('Books and indexes stay on this computer. Only selected evidence is sent to OpenAI when you generate an answer.')
+    demo_mode = os.getenv('DIALOGUE_DEMO_MODE') == '1'
+    if demo_mode:
+        with st.sidebar:
+            st.info('Portfolio demo: choose a book below. Imports are disabled for this public preview.')
+    else:
+        with st.sidebar:
+            st.header('Add a Gutenberg book')
+            with st.form('import_book'):
+                address = st.text_input('Gutenberg URL or book number', placeholder='https://www.gutenberg.org/ebooks/11')
+                uploaded = st.file_uploader('Or upload a downloaded book', type=['html', 'htm', 'xhtml', 'txt', 'utf-8', 'epub', 'zip'])
+                st.caption('HTML, plain text, EPUB, or text/HTML ZIP · Up to 50 MB. Importing builds a local search index.')
+                submitted = st.form_submit_button('Import and index')
+            if submitted:
+                if not address.strip() and uploaded is None:
+                    st.warning('Paste a Gutenberg URL/book number or choose a file.')
+                else:
+                    try:
+                        with st.status('Preparing book...', expanded=True) as status:
+                            callback = lambda message: status.update(label=message)
+                            # Reuse one cached multilingual model for imports and questions.
+                            model = cached_embedder()
+                            if uploaded is not None:
+                                book = import_bytes(uploaded.getvalue(), uploaded.name, embedder=model, progress=callback)
+                            else:
+                                book = import_source(address.strip(), embedder=model, progress=callback)
+                            status.update(label=f"Ready: {book['title']}", state='complete', expanded=False)
+                        st.session_state['source_book'] = book['book_id']
+                        st.session_state['import_message'] = f"Imported {book['title']}. You can now search or ask a question."
+                        st.rerun()
+                    except (OSError, ValueError, RuntimeError) as error:
+                        st.error(f'Import could not finish: {error}')
+            st.caption('Books and indexes stay on this computer. Only selected evidence is sent to OpenAI when you generate an answer.')
     books = catalog()
     if not books:
-        st.info('Start by importing a Gutenberg book in the sidebar. You can use a book number, URL, or downloaded file.')
+        st.info('The demo books are unavailable. Please check the deployment logs.' if demo_mode
+                else 'Start by importing a Gutenberg book in the sidebar. You can use a book number, URL, or downloaded file.')
         st.stop()
     if st.session_state.get('source_book') not in books:
         st.session_state['source_book'] = next(iter(books))

@@ -1,12 +1,14 @@
 """Dynamic local library, source identity, and legacy edition hints."""
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = PROJECT_ROOT / 'data' / 'processed'
+DATA_DIR = (PROJECT_ROOT / 'demo_library' if os.getenv('DIALOGUE_DEMO_MODE') == '1'
+            else PROJECT_ROOT / 'data' / 'processed')
 DEFAULT_BOOK_ID = 'pg1232'
 DEFAULT_EMBEDDING_MODEL = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
 EDITIONS = {

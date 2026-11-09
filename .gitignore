@@ -14,6 +14,7 @@ htmlcov/
 
 # Local books, indexes, conversations, and private reports
 /data/
+/demo_runs/
 /docs/
 /experiment/
 /project_summary.txt
@@ -24,6 +25,7 @@ htmlcov/
 /evals/*.txt
 /evals/cases/
 *.npz
+!/demo_library/*.npz
 *.log
 
 # Operating-system metadata

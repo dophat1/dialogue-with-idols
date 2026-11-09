@@ -29,10 +29,35 @@ its text, and ask questions with cited source passages.
 From the repository root, using the existing project environment:
 
 ```powershell
-.\.venv\Scripts\python.exe -m streamlit run src/discussion_app.py
+.\.venv\Scripts\python.exe -m streamlit run src/discussion_app.py --server.address 127.0.0.1
 ```
 
 Open **http://127.0.0.1:8501**.
+
+## Public portfolio demo
+
+`src/demo_app.py` is a Streamlit Community Cloud entry point for reviewers.
+It includes *The Prince* and *The Art of War* as ready-to-search sample books,
+so visitors can try **Find passages** immediately. The public demo does not
+allow imports or save discussions on the server. Answers remain in the current
+browser session, with up to three generations per session. The local app above
+keeps the full import and saved-discussion workflow.
+
+To deploy the demo from this GitHub repository:
+
+1. Create a Streamlit Community Cloud app using branch `main` and main file
+   `src/demo_app.py`. Choose Python 3.12 in Advanced settings.
+2. In the app's private Secrets settings, add root-level `OPENAI_API_KEY` and
+   `OPENAI_MODEL` values. The application reads them as environment variables.
+   Never add real values to this repository.
+3. Open the app, choose a sample book, and try **Find passages** and
+   **Generate cited answer**. Check Cloud logs and memory usage on first start;
+   the local embedding and reranking models download when first used.
+
+Generation uses the owner's API account. A per-session limit is only a demo
+convenience, not an account-wide spending limit; set an OpenAI project budget
+before sharing the public link. Streamlit Community Cloud can hibernate or
+hit memory limits, so check the live app shortly before sending it to a hirer.
 
 1. In the sidebar, paste a Gutenberg ebook URL or number (for example `11`),
    or upload a downloaded book. Click **Import and index**.

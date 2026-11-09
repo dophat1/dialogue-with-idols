@@ -9,6 +9,7 @@ from library_ui import library_controls, book_details, cached_embedder, render_p
 from retrieval import retrieve
 
 import json
+import os
 from pathlib import Path
 
 
@@ -17,6 +18,8 @@ st.set_page_config(
     page_title="Dialogue with Idols",
     layout="wide",
 )
+DEMO_MODE = os.getenv('DIALOGUE_DEMO_MODE') == '1'
+DEMO_ANSWER_LIMIT = 3
 
 
 @st.cache_resource
@@ -46,7 +49,7 @@ except (OSError, ValueError, KeyError) as error:
     st.stop()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RUN_DIR = PROJECT_ROOT / "data" / "runs"
+RUN_DIR = PROJECT_ROOT / ("demo_runs" if DEMO_MODE else "data/runs")
 
 saved_runs = {}
 skipped_files = 0
@@ -78,7 +81,7 @@ for path in RUN_DIR.glob("*.json"):
 
 
 with st.sidebar:
-    st.header("Saved answers")
+    st.header("This session" if DEMO_MODE else "Saved answers")
 
     if skipped_files:
         st.caption(
@@ -111,12 +114,15 @@ with st.sidebar:
             st.session_state["discussion_run"] = saved_runs[selected_id]
 
     else:
-        st.caption("Generated answers will appear here.")
+        st.caption("Your current answer stays in this browser session." if DEMO_MODE else "Generated answers will appear here.")
 
-    st.caption(
-        "Opening a saved answer reads the stored result. "
-        "It does not generate another answer."
-    )
+    if DEMO_MODE:
+        st.caption(f"Demo answers remaining this session: {max(0, DEMO_ANSWER_LIMIT - st.session_state.get('demo_answer_count', 0))}")
+    else:
+        st.caption(
+            "Opening a saved answer reads the stored result. "
+            "It does not generate another answer."
+        )
 
 with st.form("discussion"):
     current_run = st.session_state.get("discussion_run")
@@ -186,6 +192,10 @@ if submitted:
         st.warning("Enter a question or opinion.")
         st.stop()
 
+    if DEMO_MODE and st.session_state.get('demo_answer_count', 0) >= DEMO_ANSWER_LIMIT:
+        st.warning('This demo session has used its three generated answers. You can still find passages.')
+        st.stop()
+
     try:
         with st.spinner("Finding evidence and drafting an answer..."):
             run = generate_answer(
@@ -193,10 +203,13 @@ if submitted:
                 research_query,
                 embedder,
                 search_data,
-                parent_run=current_run if follow_up else None
+                parent_run=current_run if follow_up else None,
+                **({'save_run': False} if DEMO_MODE else {}),
             )
 
         st.session_state["discussion_run"] = run
+        if DEMO_MODE:
+            st.session_state['demo_answer_count'] = st.session_state.get('demo_answer_count', 0) + 1
 
     except OpenAIError:
         st.error(
