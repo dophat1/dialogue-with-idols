@@ -198,29 +198,32 @@ human review of the labels and a larger, more varied set of books and questions.
 
 ## Where this could go next
 
-The long-term aim is a conversation with great thinkers through their works.
-The current app is a single-book RAG demo; these are proposed improvements, in
-rough priority order:
+The aim is to move from asking about a book to feeling as though you can talk
+with its author. The current app retrieves passages and explains them; the next
+steps would build a more convincing conversation around that evidence:
 
-1. **Measure quality.** Build a set of questions with human-identified relevant
-   passages. Measure whether retrieval finds them and whether each answer claim
-   is supported by its citations. Use those results to guide later changes.
-2. **Make the exchange feel more like a dialogue.** Offer modes such as
-   *explain an idea*, *challenge my view*, and *compare arguments*. Keep the
-   book's words distinct from the AI's interpretation, and let the user follow
-   each response back to its source.
-3. **Add a focused research agent.** For difficult questions, let one agent
-   search the selected book, read passages, identify gaps, and search again
-   before answering. Show the searches and evidence in the interface, with
-   limits on steps, time, and API cost. Compare its results with the existing
-   retrieval flow before making it the default.
-4. **Compare thinkers across books.** Search several selected works and present
-   differences in their arguments, with clear attribution and separate
-   citations for each book.
-5. **Improve the reading experience.** Open citations at the relevant passage,
-   show more surrounding text, and let readers save and revisit a line of
-   inquiry.
+1. **Let the author answer in a grounded voice.** A reader could ask a question
+   or challenge an idea and receive a response written from the author's
+   perspective. Each substantive point should link to passages from their
+   work. When the text leaves room for interpretation, the response should say
+   so rather than inventing a view the author never expressed.
+2. **Build a fuller picture of each thinker.** Bring together multiple works
+   by the same author, with clear edition and translation labels. Let the
+   conversation draw on more than one text while keeping every claim traceable
+   to the work that supports it.
+3. **Invite several thinkers into one discussion.** Give each persona an agent
+   that can search and read its own source texts. A reader could pose a topic,
+   ask follow-up questions, and watch the personas respond to one another's
+   arguments. A moderator could keep the exchange focused and show where their
+   documented views agree, differ, or do not address the question.
+4. **Make the dialogue inspectable.** Show the passages behind each turn, open
+   citations at the relevant place in the book, and distinguish source-based
+   claims from the AI's connective interpretation. Let readers save and revisit
+   conversations.
+5. **Evaluate whether it stays faithful.** Have readers review the initial
+   evaluation labels, then test persona answers and multi-persona exchanges for
+   citation support, faithful attribution, useful disagreement, and honest
+   handling of gaps in the texts.
 
-These ideas are plans, not features in the current release. The guiding rule
-is to make the conversation more useful while keeping the underlying texts
-visible and the limits of the AI clear.
+These are plans, not current features. A persona would be an AI interpretation
+grounded in surviving works, not the historical person brought back to life.
