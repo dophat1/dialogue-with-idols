@@ -59,6 +59,39 @@ convenience, not an account-wide spending limit; set an OpenAI project budget
 before sharing the public link. Streamlit Community Cloud can hibernate or
 hit memory limits, so check the live app shortly before sending it to a hirer.
 
+### Run the demo with Docker
+
+Docker packages the demo and its Python dependencies. Docker Desktop must be
+running. From the repository root, build and start the container:
+
+```powershell
+docker compose up --build
+```
+
+Open **http://127.0.0.1:8501**. To generate answers locally, Docker Compose
+passes `OPENAI_API_KEY` and `OPENAI_MODEL` from the existing private `.env` file;
+passage search works without them. The Hugging Face model cache is kept in a
+Docker volume so the models do not need to download on every container restart.
+Stop the demo with `Ctrl+C`.
+
+### Put the Docker demo on the internet
+
+Docker Desktop runs the app on your own computer. For an HR-accessible URL,
+push this repository to GitHub and create a Docker web service on a host such as
+Render. Select the repository and its `Dockerfile`, set `OPENAI_API_KEY` and
+`OPENAI_MODEL` as private environment variables, then deploy. The host provides
+the public URL and HTTPS. A persistent disk is optional for this read-only
+sample library and session-only answers; mounting one at
+`/home/app/.cache/huggingface` keeps downloaded models between restarts. Render
+supports Docker services, secrets, public URLs, and optional persistent disks
+([web services](https://render.com/docs/web-services),
+[Docker deploys](https://render.com/docs/docker),
+[disks](https://render.com/docs/disks)).
+
+Set an API project budget before sharing the link. The demo's three-answer
+session cap is a convenience only; visitors may start new sessions. For this
+deployment, uploaded books are disabled and answer history is not retained.
+
 1. In the sidebar, paste a Gutenberg ebook URL or number (for example `11`),
    or upload a downloaded book. Click **Import and index**.
 2. Select the book and inspect **Book and extraction details** for metadata

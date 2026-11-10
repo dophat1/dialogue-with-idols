@@ -1,0 +1,16 @@
+services:
+  dialogue-demo:
+    build: .
+    ports:
+      - "127.0.0.1:8501:8501"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      PORT: 8501
+      HF_HOME: /home/app/.cache/huggingface
+    volumes:
+      - model-cache:/home/app/.cache/huggingface
+    restart: unless-stopped
+
+volumes:
+  model-cache:
