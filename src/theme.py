@@ -68,10 +68,12 @@ def apply_theme():
         .stButton button, [data-testid="stFormSubmitButton"] button {
           border-radius: 999px;
           min-height: 2.75rem;
+          height: auto;
           font-weight: 650;
           padding-inline: 1.15rem;
           transition: transform .15s ease, box-shadow .15s ease;
         }
+        .stButton button, .stButton button p { white-space: normal; }
         [data-testid="stFormSubmitButton"] button[kind="primary"],
         .stButton button[kind="primary"] {
           background: var(--plum);

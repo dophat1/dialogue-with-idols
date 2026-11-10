@@ -21,7 +21,24 @@ st.set_page_config(
 )
 DEMO_MODE = os.getenv('DIALOGUE_DEMO_MODE') == '1'
 DEMO_ANSWER_LIMIT = 3
+SUGGESTED_QUESTIONS = {
+    "the prince": (
+        "Is it better for a leader to be loved or feared?",
+        "What does Machiavelli say about choosing advisers?",
+        "How can a leader encourage people to speak honestly?",
+    ),
+    "the art of war": (
+        "Why is knowing yourself as important as knowing your opponent?",
+        "What does Sun Tzu say about preparing before taking action?",
+        "How should a leader adapt when circumstances change?",
+    ),
+}
 apply_theme()
+
+
+def select_suggested_question(question):
+    """Fill the question widget without submitting the discussion form."""
+    st.session_state['question'] = question
 
 
 @st.cache_resource
@@ -35,7 +52,8 @@ page_intro(
     "Meet the ideas in a book, follow the passages, and start a conversation grounded in the text.",
 )
 selected_book = library_controls()
-if st.session_state.get('active_book') != selected_book:
+book_changed = st.session_state.get('active_book') != selected_book
+if book_changed:
     st.session_state.pop('discussion_run', None)
     st.session_state.pop('retrieved_preview', None)
     st.session_state['active_book'] = selected_book
@@ -48,6 +66,24 @@ try:
     search_data = load_search_data(selected_book)
     embedder = load_embedder(search_data[-1], search_data.book.get('language'))
     book = search_data.book
+    suggestions = SUGGESTED_QUESTIONS.get(book['title'].strip().casefold(), ())
+    if book_changed:
+        # Initialize on first visit and reset only when the visitor changes books.
+        # Ordinary Streamlit reruns preserve both suggested and custom questions.
+        st.session_state['question'] = suggestions[0] if suggestions else ''
+    if suggestions:
+        st.markdown("## Not sure where to start?")
+        st.caption("Choose a question below, then click Generate cited answer to see an answer with supporting passages.")
+        suggestion_columns = st.columns(3)
+        for index, suggestion in enumerate(suggestions):
+            with suggestion_columns[index]:
+                st.button(
+                    suggestion,
+                    key=f"suggested-question-{selected_book}-{index}",
+                    on_click=select_suggested_question,
+                    args=(suggestion,),
+                    use_container_width=True,
+                )
     st.markdown("<div class='eyebrow'>CURRENTLY READING</div>", unsafe_allow_html=True)
     st.subheader(book['title'])
     st.caption(f"{book['author']} · {book.get('translator') or 'Translation not specified'}")
@@ -134,6 +170,15 @@ with st.sidebar:
 
 st.markdown("## What would you like to ask?")
 st.caption("Ask about an idea, test an interpretation, or look for a moment in the text.")
+question = st.text_area(
+    "Choose a question above, or write your own",
+    placeholder=(
+        "What trade-offs does this book describe? "
+        "Challenge my position."
+    ),
+    max_chars=8000,
+    key="question",
+)
 with st.form("discussion"):
     current_run = st.session_state.get("discussion_run")
 
@@ -142,15 +187,6 @@ with st.form("discussion"):
             "Available context: "
             + current_run["question"][:150]
         )
-    question = st.text_area(
-        "Your question",
-        placeholder=(
-            "What trade-offs does this book describe? "
-            "Challenge my position."
-        ),
-        max_chars=8000,
-    )
-
     research_query = st.text_input(
         "Search the book for",
         placeholder="Name the subject you want to investigate.",

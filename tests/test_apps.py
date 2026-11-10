@@ -23,6 +23,47 @@ class FakeEmbedder:
 
 @unittest.skipUnless(all(path.exists() for key in ('pg132', 'pg1232') for path in book_paths(key)), 'Prepare both local indexes first')
 class AppTests(unittest.TestCase):
+    def test_discussion_suggestions_prefill_without_generating(self):
+        prince_questions = (
+            "Is it better for a leader to be loved or feared?",
+            "What does Machiavelli say about choosing advisers?",
+            "How can a leader encourage people to speak honestly?",
+        )
+        war_questions = (
+            "Why is knowing yourself as important as knowing your opponent?",
+            "What does Sun Tzu say about preparing before taking action?",
+            "How should a leader adapt when circumstances change?",
+        )
+        with patch('library_ui.load_embedder', return_value=FakeEmbedder()), patch('library_ui.load_reranker', return_value=None), \
+                patch('answer_question.generate_answer') as generate:
+            app = AppTest.from_file(str(ROOT/'src'/'discussion_app.py'), default_timeout=30).run()
+            self.assertFalse(app.exception)
+            initial_suggestion = prince_questions[0] if app.selectbox[0].value == 'pg1232' else war_questions[0]
+            self.assertEqual(app.session_state['question'], initial_suggestion)
+
+            # Switching to The Prince initializes its first prompt.
+            app.selectbox[0].set_value('pg1232').run()
+            self.assertEqual(app.session_state['question'], prince_questions[0])
+            self.assertTrue(all(any(b.label == question for b in app.button) for question in prince_questions))
+
+            # Clicking a suggestion fills the box, but does not submit/generate.
+            next(b for b in app.button if b.label == prince_questions[2]).click().run()
+            self.assertEqual(app.text_area[0].value, prince_questions[2])
+            generate.assert_not_called()
+
+            # A custom prompt survives a normal rerun, then switching books resets it.
+            app.text_area[0].set_value('My own question about the book').run()
+            self.assertEqual(app.text_area[0].value, 'My own question about the book')
+            app.selectbox[0].set_value('pg132').run()
+            self.assertEqual(app.session_state['question'], war_questions[0])
+            self.assertTrue(all(any(b.label == question for b in app.button) for question in war_questions))
+            next(b for b in app.button if b.label == war_questions[2]).click().run()
+            self.assertEqual(app.text_area[0].value, war_questions[2])
+            generate.assert_not_called()
+
+            app.selectbox[0].set_value('pg1232').run()
+            self.assertEqual(app.session_state['question'], prince_questions[0])
+
     def test_search_book_switch_clears_results(self):
         with patch('library_ui.load_embedder', return_value=FakeEmbedder()), patch('library_ui.load_reranker', return_value=None):
             app = AppTest.from_file(str(ROOT/'src'/'search_app.py'), default_timeout=30).run()
@@ -104,6 +145,8 @@ class ImportAppTests(unittest.TestCase):
                 self.assertFalse(app.exception)
                 self.assertEqual(len(app.selectbox), 1)
                 self.assertTrue(app.selectbox[0].value.startswith('pg99999_'))
+                self.assertFalse(any('Not sure where to start?' in item.value for item in app.markdown))
+                self.assertTrue(app.text_area)
                 app.text_area[0].set_value('What opens the hidden garden?')
                 next(w for w in app.button if w.label == 'Find passages').click().run()
                 self.assertFalse(app.exception)
