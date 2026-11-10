@@ -20,6 +20,12 @@ def apply_theme():
           --line: #e4d2b9;
           --sage: #e8e4d5;
         }
+        .stApp,
+        [data-testid="stMarkdownContainer"],
+        [data-testid="stCaptionContainer"],
+        [data-testid="stWidgetLabel"] {
+          font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+        }
         .stApp {
           background:
             radial-gradient(ellipse at 85% 2%, rgba(255, 247, 228, .86), transparent 34rem),
@@ -30,12 +36,12 @@ def apply_theme():
         }
         [data-testid="stHeader"] { background: transparent; }
         [data-testid="stAppViewContainer"] .main .block-container {
-          max-width: 1080px;
+          max-width: 1180px;
           padding-top: 2.4rem;
           padding-bottom: 5rem;
         }
         h1, h2, h3 { color: var(--ink); letter-spacing: -.035em; }
-        h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; }
+        h1 { font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif; font-weight: 500; }
         h2, h3 { font-weight: 600; }
         [data-testid="stCaptionContainer"] { color: var(--muted-ink); }
         .eyebrow {
@@ -71,6 +77,7 @@ def apply_theme():
           background: #fffdf7;
           border-color: #d8c5a9;
           border-radius: 12px;
+          font-family: "Segoe UI", system-ui, sans-serif;
         }
         [data-testid="stTextArea"] textarea:focus,
         [data-testid="stTextInput"] input:focus {
@@ -84,6 +91,7 @@ def apply_theme():
           font-weight: 650;
           padding-inline: 1.15rem;
           transition: transform .15s ease, box-shadow .15s ease;
+          font-family: "Segoe UI", system-ui, sans-serif;
         }
         .stButton button, .stButton button p { white-space: normal; }
         [data-testid="stFormSubmitButton"] button[kind="primary"],
@@ -118,7 +126,7 @@ def apply_theme():
 
 
 def page_intro(kicker, title, description):
-    copy, visual = st.columns([1, 1.05], gap="large", vertical_alignment="center")
+    copy, visual = st.columns([0.84, 1.36], gap="large", vertical_alignment="center")
     with copy:
         st.markdown(f'<div class="eyebrow">{kicker}</div>', unsafe_allow_html=True)
         st.title(title)
