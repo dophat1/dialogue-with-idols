@@ -12,18 +12,20 @@ def apply_theme():
         """
         <style>
         :root {
-          --ink: #272137;
-          --muted-ink: #696276;
+          --ink: #30241d;
+          --muted-ink: #71604f;
           --plum: #684c78;
           --plum-dark: #4f3b60;
-          --paper: #fbf9f5;
-          --line: #e9e3db;
-          --sage: #e9eee8;
+          --paper: #fff8ec;
+          --line: #e4d2b9;
+          --sage: #e8e4d5;
         }
         .stApp {
           background:
-            radial-gradient(ellipse at 84% 0%, rgba(223, 215, 231, .48), transparent 34rem),
-            linear-gradient(180deg, #f7f4ef 0%, #fbf9f5 52%, #f7f4ef 100%);
+            radial-gradient(ellipse at 85% 2%, rgba(255, 247, 228, .86), transparent 34rem),
+            repeating-linear-gradient(88deg, rgba(102, 67, 39, .025) 0 1px, transparent 1px 15px),
+            linear-gradient(135deg, #e5cfb0 0%, #f1e2ca 34%, #e8d5b8 68%, #ddc39f 100%);
+          background-attachment: fixed;
           color: var(--ink);
         }
         [data-testid="stHeader"] { background: transparent; }
@@ -58,16 +60,16 @@ def apply_theme():
           box-shadow: 0 14px 38px rgba(45, 35, 52, .09);
         }
         [data-testid="stForm"] {
-          background: rgba(255, 255, 255, .78);
+          background: rgba(255, 249, 239, .88);
           border: 1px solid var(--line);
           border-radius: 20px;
           padding: 1.25rem 1.35rem 1rem;
-          box-shadow: 0 12px 36px rgba(45, 35, 52, .055);
+          box-shadow: 0 12px 36px rgba(75, 48, 26, .09);
         }
         [data-testid="stTextArea"] textarea,
         [data-testid="stTextInput"] input {
-          background: #fffefa;
-          border-color: #ded6e4;
+          background: #fffdf7;
+          border-color: #d8c5a9;
           border-radius: 12px;
         }
         [data-testid="stTextArea"] textarea:focus,
@@ -93,12 +95,12 @@ def apply_theme():
         [data-testid="stFormSubmitButton"] button:hover,
         .stButton button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(53, 40, 65, .12); }
         [data-testid="stExpander"] {
-          background: rgba(255,255,255,.7);
+          background: rgba(255, 249, 239, .82);
           border: 1px solid var(--line);
           border-radius: 14px;
         }
         [data-testid="stSidebar"] {
-          background: linear-gradient(180deg, #f0ece8, #f5f2ed);
+          background: linear-gradient(180deg, #d9c09f, #ead9bd 58%, #e2cfb1);
           border-right: 1px solid var(--line);
         }
         [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { color: var(--muted-ink); }
