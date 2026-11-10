@@ -43,54 +43,32 @@ allow imports or save discussions on the server. Answers remain in the current
 browser session, with up to three generations per session. The local app above
 keeps the full import and saved-discussion workflow.
 
-To deploy the demo from this GitHub repository:
+To deploy the demo from this public GitHub repository:
 
-1. Create a Streamlit Community Cloud app using branch `main` and main file
-   `src/demo_app.py`. Choose Python 3.12 in Advanced settings.
-2. In the app's private Secrets settings, add root-level `OPENAI_API_KEY` and
-   `OPENAI_MODEL` values. The application reads them as environment variables.
-   Never add real values to this repository.
-3. Open the app, choose a sample book, and try **Find passages** and
-   **Generate cited answer**. Check Cloud logs and memory usage on first start;
-   the local embedding and reranking models download when first used.
+1. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/) with the
+   GitHub account that has admin access to this repository.
+2. Create an app with repository `dophat1/dialogue-with-idols`, branch `main`,
+   and main file `src/demo_app.py`. In Advanced settings, select Python 3.12.
+3. In the private **Secrets** field, add the values below, replacing the
+   placeholders. Do not commit real credentials to GitHub.
+
+   ```toml
+   OPENAI_API_KEY = "your OpenAI API key"
+   OPENAI_MODEL = "your model name"
+   ```
+
+4. Deploy the app. The first start downloads the embedding and reranking
+   models, so allow time for startup and check the Cloud logs if it fails.
+   Try **Find passages** first, then **Generate cited answer**.
 
 Generation uses the owner's API account. A per-session limit is only a demo
 convenience, not an account-wide spending limit; set an OpenAI project budget
 before sharing the public link. Streamlit Community Cloud can hibernate or
 hit memory limits, so check the live app shortly before sending it to a hirer.
 
-### Run the demo with Docker
-
-Docker packages the demo and its Python dependencies. Docker Desktop must be
-running. From the repository root, build and start the container:
-
-```powershell
-docker compose up --build
-```
-
-Open **http://127.0.0.1:8501**. To generate answers locally, Docker Compose
-passes `OPENAI_API_KEY` and `OPENAI_MODEL` from the existing private `.env` file;
-passage search works without them. The Hugging Face model cache is kept in a
-Docker volume so the models do not need to download on every container restart.
-Stop the demo with `Ctrl+C`.
-
-### Put the Docker demo on the internet
-
-Docker Desktop runs the app on your own computer. For an HR-accessible URL,
-push this repository to GitHub and create a Docker web service on a host such as
-Render. Select the repository and its `Dockerfile`, set `OPENAI_API_KEY` and
-`OPENAI_MODEL` as private environment variables, then deploy. The host provides
-the public URL and HTTPS. A persistent disk is optional for this read-only
-sample library and session-only answers; mounting one at
-`/home/app/.cache/huggingface` keeps downloaded models between restarts. Render
-supports Docker services, secrets, public URLs, and optional persistent disks
-([web services](https://render.com/docs/web-services),
-[Docker deploys](https://render.com/docs/docker),
-[disks](https://render.com/docs/disks)).
-
 Set an API project budget before sharing the link. The demo's three-answer
-session cap is a convenience only; visitors may start new sessions. For this
-deployment, uploaded books are disabled and answer history is not retained.
+session cap is a convenience only; visitors may start new sessions. Uploaded
+books are disabled and answer history is not retained.
 
 1. In the sidebar, paste a Gutenberg ebook URL or number (for example `11`),
    or upload a downloaded book. Click **Import and index**.

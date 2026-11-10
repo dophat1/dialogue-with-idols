@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
+import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError
 from pydantic import BaseModel
@@ -91,10 +92,23 @@ def generate_answer(
         raise ValueError('A follow-up must use the same book as its parent answer. Start a new discussion.')
     load_dotenv(PROJECT_ROOT / ".env")
 
-    model_name = os.getenv("OPENAI_MODEL")
+    def setting(name):
+        value = os.getenv(name)
+        if value:
+            return value
+        try:
+            return st.secrets.get(name)
+        except (FileNotFoundError, KeyError):
+            return None
 
-    if not os.getenv("OPENAI_API_KEY") or not model_name:
-        raise RuntimeError("Set OPENAI_API_KEY and OPENAI_MODEL in .env")
+    model_name = setting("OPENAI_MODEL")
+    api_key = setting("OPENAI_API_KEY")
+
+    if not api_key or not model_name:
+        raise RuntimeError(
+            "Set OPENAI_API_KEY and OPENAI_MODEL in .env, environment variables, "
+            "or Streamlit Community Cloud secrets."
+        )
 
     passages, chapters, vectors, passage_ids, embedding_model = search_data
 
@@ -138,7 +152,7 @@ def generate_answer(
     print("\nSelected evidence:")
     for source in evidence:
         print(f"- {source['source_id']} | {source['chapter']}")
-    client = OpenAI(timeout=45.0, max_retries=0)
+    client = OpenAI(api_key=api_key, timeout=45.0, max_retries=0)
 
     print(
         f"\nGenerating an answer from "
