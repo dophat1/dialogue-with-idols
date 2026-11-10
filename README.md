@@ -1,166 +1,49 @@
 # Dialogue with Idols
 
-![A meme about Plato writing Socratic dialogues](platodialogue.jpg)
+![Plato writing Socratic dialogues](assets/platodialogue.jpg)
 
-## Preface
+*A warm reading room for asking questions of ideas preserved in books.*
+
+## Why I made it
 
 I have always admired great thinkers and wished I could sit down and talk with
-them. Most lived long before us, so that conversation is impossible in the
-literal sense. Their writing, though, still gives us something to respond to.
-That led me to wonder whether AI could help me explore their ideas through a
-conversation grounded in their own works.
+them. Most of them are long gone, so that dream is mostly impossible. Their
+books remain, though, and I wondered whether AI could help me explore those
+ideas in conversation while showing the passages behind each answer.
 
-Project Gutenberg makes many of those works freely available in formats that
-are practical to process. I started Dialogue with Idols as a way to bring that
-personal idea a little closer: choose a book, ask a question, and see the
-passages behind the answer. This is an early RAG demo, not a recreation of any
-thinker's mind or voice. I plan to keep improving how it reads, retrieves, and
-discusses their work.
+Project Gutenberg collects many of these works and makes them freely available
+in formats that are practical to read and process. This project is my attempt
+to bring that conversation a little closer. It is an early retrieval-augmented
+generation (RAG) demo: it searches a book and drafts an answer from retrieved
+passages. It does not recreate a historical person's mind or voice.
 
 The name is a playful nod to Nietzsche's *Twilight of the Idols*. If the idols
-are gone, perhaps I can bring them back for a conversation—at least through
-the words they left behind.
+are gone, perhaps I can bring them back for a chat—with citations, of course.
 
-Today, the local Streamlit app lets you import a Project Gutenberg book, search
-its text, and ask questions with cited source passages.
+![Machiavelli and Sun Tzu meeting across an open book](assets/reading-room.png)
 
-## Start the app
+## Try the app
 
-From the repository root, using the existing project environment:
+The public demo is designed so a visitor can start without importing a book or
+thinking up a question first:
 
-```powershell
-.\.venv\Scripts\python.exe -m streamlit run src/discussion_app.py --server.address 127.0.0.1
-```
+- *The Prince* and *The Art of War* are already indexed, with *The Prince*
+  selected at startup.
+- Three question suggestions appear for the selected book. Choosing one fills
+  the question box; it does not generate an answer.
+- **Find passages** searches the book and shows source passages and context.
+- **Generate cited answer** asks the model to answer from retrieved passages
+  and shows the citations supporting each claim.
 
-Open **http://127.0.0.1:8501**.
+The demo is read-only: visitors cannot import books, and generated answers
+remain in the current browser session. It allows up to three generated answers
+per session. The full local app also starts with the bundled sample books and
+allows Gutenberg imports, local file uploads, and saved discussions.
 
-## Public portfolio demo
+## Run locally
 
-`src/demo_app.py` is a Streamlit Community Cloud entry point for reviewers.
-It includes *The Prince* and *The Art of War* as ready-to-search sample books,
-with *The Prince* selected first so visitors can start asking questions right
-away. The discussion and search pages share an original literary header image.
-The public demo does not
-allow imports or save discussions on the server. Answers remain in the current
-browser session, with up to three generations per session. The local app above
-also starts with *The Prince* and keeps the full import and saved-discussion
-workflow for adding more books.
-
-To deploy the demo from this public GitHub repository:
-
-1. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/) with the
-   GitHub account that has admin access to this repository.
-2. Create an app with repository `dophat1/dialogue-with-idols`, branch `main`,
-   and main file `src/demo_app.py`. In Advanced settings, select Python 3.12.
-3. In the private **Secrets** field, add the values below, replacing the
-   placeholders. Do not commit real credentials to GitHub.
-
-   ```toml
-   OPENAI_API_KEY = "your OpenAI API key"
-   OPENAI_MODEL = "your model name"
-   ```
-
-4. Deploy the app. The first start downloads the embedding and reranking
-   models, so allow time for startup and check the Cloud logs if it fails.
-   Try **Find passages** first, then **Generate cited answer**.
-
-Generation uses the owner's API account. A per-session limit is only a demo
-convenience, not an account-wide spending limit; set an OpenAI project budget
-before sharing the public link. Streamlit Community Cloud can hibernate or
-hit memory limits, so check the live app shortly before sending it to a hirer.
-
-Set an API project budget before sharing the link. The demo's three-answer
-session cap is a convenience only; visitors may start new sessions. Uploaded
-books are disabled and answer history is not retained.
-
-1. In the sidebar, paste a Gutenberg ebook URL or number (for example `11`),
-   or upload a downloaded book. Click **Import and index**.
-2. Select the book and inspect **Book and extraction details** for metadata
-   and extraction warnings.
-3. Type your question. **Find passages** searches locally and shows matches,
-   surrounding context, and links to the original source.
-4. **Generate cited answer** sends the question and selected evidence to OpenAI.
-   Inspect the evidence attached to each argument.
-5. Reopen saved answers from the sidebar or continue the current discussion.
-
-The original Prince and Art of War indexes and saved answers remain supported.
-Switching books clears current results/context. Discussions use one selected
-book at a time. Imported editions appear automatically; there is no two-book
-allowlist and no per-book configuration file to create.
-
-## Supported imports
-
-- Gutenberg book-page URLs, ebook numbers, or direct download URLs.
-- Local HTML/HTM/XHTML, plain text, EPUB, and text/HTML ZIP files.
-- UTF-8, UTF-16, and encoding detection for older text files.
-- EPUB reading order from the package spine, with internal source locators.
-- Metadata from HTML tags, EPUB metadata, or Gutenberg text headers. Missing
-  fields are reported instead of inventing an author.
-
-The importer resolves Gutenberg page links to readable downloads. Site/help
-pages and redirects to another book are rejected. Standard HTML/text cache
-paths provide a fallback when format discovery is unavailable. URLs for some
-older binary formats resolve through the ebook page to its readable edition.
-
-The upload limit is 50 MB; archives are limited to 100 MB unpacked and 3000
-entries. Image-only scans, audio, video, proprietary reader formats, mathematical
-layout, and arbitrary PDFs are not decoded locally. For these, use the Gutenberg
-book URL if a readable text/HTML edition exists. No OCR is performed. Gutenberg
-publishes a wider range of formats than these text adapters cover; see its
-[format documentation](https://www.gutenberg.org/help/file_formats.html).
-
-## How retrieval works
-
-Text is normalized into sections and source-located paragraphs. Token windows
-are bounded by the selected embedding model's actual input limit. New imports
-use `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`; existing
-English indexes retain their recorded model.
-
-Queries combine semantic similarity and phrase-aware BM25 matching using
-reciprocal rank fusion. The top results retain the strongest lexical match
-alongside neural choices so exact names and relations are not lost. A local
-cross-encoder then reranks the union of semantic and lexical candidates with
-nearby paragraph context. English books use `cross-encoder/ms-marco-MiniLM-L6-v2`;
-other/unknown languages use `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`.
-Model resources are cached and reused. Initial model downloads and indexing
-can take time; subsequent questions reuse the installed models.
-
-Known commentary/footnote markers are preserved and excluded from author-text
-indexing. Generic editions can contain unmarked editorial material; automatic
-attribution is not guaranteed. Unusual HTML falls back to continuous text with
-an extraction warning. Paragraph structure and source anchors can be lost in
-that fallback. Tables of contents and common Gutenberg boilerplate are removed
-where identifiable.
-
-Answers use up to six retrieved paragraph excerpts. Very long paragraphs use
-bounded excerpts with character offsets rather than being discarded. The app
-checks citation membership and basic answer consistency, not whether every
-claim is semantically entailed. Retrieval scores are not truth/confidence
-probabilities. No system can guarantee the correct answer to every question.
-
-## Local storage and configuration
-
-New books are published as complete bundles under `data/processed/<edition-id>/`:
-
-```text
-book.json       metadata, sections, paragraphs, provenance, warnings
-passages.json   searchable windows, parent IDs and character offsets
-vectors.npz     embeddings, model name and artifact fingerprints
-source.bin      exact imported source bytes
-```
-
-Content/version identities keep changed editions separate. Failed imports do
-not replace working indexes. Book and passage fingerprints reject stale text
-and mismatched embeddings. Identical imports reuse their existing complete
-index. Sources, indexes, saved runs, and private reports remain gitignored.
-
-Keep `OPENAI_API_KEY` and `OPENAI_MODEL` in the private `.env` file. Importing
-and searching do not require an OpenAI key. Generation reads the existing
-private configuration only when requested. No model setting is overwritten.
-Copy `.env.example` to `.env` and replace its placeholders before generating
-answers in a fresh clone. Do not overwrite an existing configured `.env`.
-
-For a new environment, install the tested dependencies and start the app:
+Python 3.12 is recommended. From the repository root, install dependencies and
+start the full app:
 
 ```powershell
 python -m venv .venv
@@ -168,101 +51,139 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m streamlit run src/discussion_app.py
 ```
 
-## Command-line tools and checks
+Open **http://localhost:8501**. The bundled books can be searched immediately.
+Import another book from the sidebar using a Gutenberg URL or number, or upload
+HTML, plain text, EPUB, or a supported ZIP file. Passage search does not require
+an OpenAI API key. Answer generation does.
+
+Keep `OPENAI_API_KEY` and `OPENAI_MODEL` in a private `.env` file or
+`.streamlit/secrets.toml`; both are gitignored. Start from `.env.example` in a
+fresh clone, and never commit real credentials.
+
+To run the search-only page, which makes no OpenAI requests:
 
 ```powershell
-# Full pipeline, from a URL/number or local file
-.\.venv\Scripts\python.exe -m src.ingest 11
-.\.venv\Scripts\python.exe -m src.ingest data/raw/my_book.epub
-
-# Extraction only, with optional metadata overrides
-.\.venv\Scripts\python.exe src/extract_book.py data/raw/my_book.html
-
-# Search-only interface (no OpenAI requests)
 .\.venv\Scripts\python.exe -m streamlit run src/search_app.py
-
-# Automated unit and Streamlit tests
-.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -v
-
-# Small retrieval regression check against available local demo books (no API)
-.\.venv\Scripts\python.exe -X utf8 -m evals.retrieval_smoke
 ```
 
-The automated tests stub models/API calls. Separate real-model and live API
-smoke checks are documented in [DEVELOPMENT.md](DEVELOPMENT.md). These small
-checks are development evidence, not a comprehensive accuracy benchmark.
+## Deploy on Streamlit Community Cloud
 
-`src/review_run.py` optionally reviews a saved run against its stored citations.
-It makes a separate OpenAI request and remains advisory. Reusable extraction,
-inspection, chunking, and embedding commands remain in `src/`; obsolete demo
-scripts and generated caches are excluded from the published project.
+The public portfolio entry point is `src/demo_app.py`. The repository must be
+on GitHub, and the connected GitHub account needs admin access to it.
 
-## First quality evaluation
+1. Sign in at [Streamlit Community Cloud](https://share.streamlit.io/).
+2. Create an app from repository `dophat1/dialogue-with-idols`, branch `main`,
+   with main file `src/demo_app.py`.
+3. Select Python 3.12 in Advanced settings.
+4. Add these values to the app's private **Secrets** field, replacing the
+   placeholders. Do not put real values in GitHub files.
 
-On 2026-11-10, I ran a first evaluation with 20 questions across *The Prince*,
-*The Art of War*, *Alice's Adventures in Wonderland*, and *The Raven*. The
-questions and expected source paragraphs were prepared by reading selected
-passages before running retrieval. Ten cases were marked for development and
-ten for a first holdout check; each split had eight answerable and two
-unanswerable questions. The labels and claim review were AI-assisted and still
-need independent human review. This small set is a diagnostic check, not a
-general accuracy estimate.
+   ```toml
+   OPENAI_API_KEY = "your OpenAI API key"
+   OPENAI_MODEL = "your model name"
+   ```
+
+5. Deploy. The first launch downloads the embedding and reranking models, so
+   startup can take a few minutes. Check the app logs if launch fails.
+
+The demo uses the owner's OpenAI account. Its per-session answer cap is a
+convenience, not an account-wide spending limit; set a project budget before
+sharing the URL. Community Cloud apps may sleep when idle and have limited
+memory, so check the app before sharing it with a reviewer.
+
+## How it works
+
+### Import and extraction
+
+The importer accepts Gutenberg book pages, ebook numbers, direct download URLs,
+and local HTML, XHTML, plain text, EPUB, and text/HTML ZIP files. It extracts
+book metadata, chapters, paragraphs, and source locations where available.
+Failed imports do not replace working indexes. Full book content, indexes, and
+saved answers are stored locally and excluded from Git; the two demo indexes
+are bundled in `demo_library/` for immediate use.
+
+The upload limit is 50 MB; ZIP archives are limited to 100 MB unpacked and
+3000 entries. Image-only scans, arbitrary PDFs, audio, and video are not decoded
+and no OCR is performed. A readable Gutenberg text or HTML edition is required.
+Some unusual HTML may fall back to continuous text, which can lose paragraph
+structure and source anchors. Automatic author/editor attribution is not
+guaranteed for editions with unmarked commentary.
+
+### Retrieval and answers
+
+New imports use the multilingual
+`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` embedding model.
+Search combines semantic similarity with phrase-aware BM25 lexical matching
+using reciprocal rank fusion. A cross-encoder reranks candidates with nearby
+paragraph context. English books use
+`cross-encoder/ms-marco-MiniLM-L6-v2`; other or unknown languages use
+`cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`.
+
+Answer generation sends the question and selected evidence to OpenAI. It uses
+up to six retrieved paragraph excerpts and attaches source IDs to claims. The
+app checks citation membership and basic answer consistency, but this does not
+prove that every claim is entailed by its citation. Retrieval scores are not
+confidence or truth probabilities. When the retrieved text is insufficient,
+the model is instructed to qualify or abstain. Answers remain fallible and
+should be checked against their linked passages.
+
+## Quality evaluation
+
+A first small evaluation was run on 2026-11-10 using 20 questions across *The
+Prince*, *The Art of War*, *Alice's Adventures in Wonderland*, and *The Raven*.
+Ten questions were marked for development and ten for a first holdout check.
+The labels and claim review were AI-assisted and still need independent human
+review. This is diagnostic evidence, not a general accuracy estimate.
 
 | Check | Result |
 | --- | ---: |
 | Preselected evidence found in the first six results | 14/16 answerable questions (87.5%) |
 | All preselected paragraphs found in the first six | 13/16 (81.3%) |
 | Mean reciprocal rank of the first preselected paragraph | 0.557 |
-| Unanswerable questions answered with insufficient evidence and no claims | 4/4 |
+| Unanswerable questions returned with insufficient evidence and no claims | 4/4 |
 | Answers produced without a validation error | 19/20 |
 | Generated claims judged fully / partly / unsupported | 23 / 6 / 1 out of 30 |
 
-Two questions missed their preselected source paragraph. The mercenaries
-question in *The Prince* retrieved other passages that answered it, revealing
-an incomplete gold label. The *Art of War* question about what is better than
-winning every battle missed the passage about breaking resistance without
-fighting. Its generated answer discussed preserving an enemy country instead,
-which did not answer the question. One other answer was rejected by the app's
-validation path; the exact cause was not captured in that run. Some accepted
-answers added details or certainty beyond their citations. These are concrete
-targets for improving retrieval and claim checking.
+The review found missed source labels, one answer that did not address its
+question, one rejected answer, and claims that added detail beyond their
+citations. These cases point to retrieval and claim-support checks that need
+more work. For example, a *Prince* question about mercenaries retrieved other
+passages that answered it, showing that its original expected-source label was
+incomplete. An *Art of War* question about what is better than winning every
+battle missed the passage about overcoming resistance without fighting; the
+generated answer instead discussed preserving an enemy country. One answer was
+rejected by validation, but that run did not record the exact cause. Some
+accepted answers also added detail or certainty beyond their citations.
 
 The local evaluation runner is
-`.\.venv\Scripts\python.exe -m evals.quality_eval` (add `--answers` for paid API
-generation). It reads a locally curated question file and writes
-full retrieved passages and model outputs to Git-ignored `docs/` files. That
-question file and the detailed transcript are local evaluation artifacts and
-are not included in a fresh clone. Future portfolio claims should follow
-human review of the labels and a larger, more varied set of books and questions.
+`.\.venv\Scripts\python.exe -m evals.quality_eval` (add `--answers` for paid
+API generation). It reads a locally curated question set and writes full
+retrieved passages and outputs to gitignored `docs/` files. That question set
+and detailed transcript are not included in a fresh clone. The labels and claim
+review need independent human review before making broad accuracy claims.
 
-## Where this could go next
+Run the automated tests and the small retrieval regression check with:
 
-The aim is to move from asking about a book to feeling as though you can talk
-with its author. The current app retrieves passages and explains them; the next
-steps would build a more convincing conversation around that evidence:
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -X utf8 -m evals.retrieval_smoke
+```
 
-1. **Let the author answer in a grounded voice.** A reader could ask a question
-   or challenge an idea and receive a response written from the author's
-   perspective. Each substantive point should link to passages from their
-   work. When the text leaves room for interpretation, the response should say
-   so rather than inventing a view the author never expressed.
-2. **Build a fuller picture of each thinker.** Bring together multiple works
-   by the same author, with clear edition and translation labels. Let the
-   conversation draw on more than one text while keeping every claim traceable
-   to the work that supports it.
-3. **Invite several thinkers into one discussion.** Give each persona an agent
-   that can search and read its own source texts. A reader could pose a topic,
-   ask follow-up questions, and watch the personas respond to one another's
-   arguments. A moderator could keep the exchange focused and show where their
-   documented views agree, differ, or do not address the question.
-4. **Make the dialogue inspectable.** Show the passages behind each turn, open
-   citations at the relevant place in the book, and distinguish source-based
-   claims from the AI's connective interpretation. Let readers save and revisit
-   conversations.
-5. **Evaluate whether it stays faithful.** Have readers review the initial
-   evaluation labels, then test persona answers and multi-persona exchanges for
-   citation support, faithful attribution, useful disagreement, and honest
-   handling of gaps in the texts.
+The automated tests stub model and API calls; they do not establish live model
+accuracy. See [DEVELOPMENT.md](DEVELOPMENT.md) for separate live checks.
 
-These are plans, not current features. A persona would be an AI interpretation
-grounded in surviving works, not the historical person brought back to life.
+## Where it could go next
+
+The long-term aim is a conversation that feels closer to talking with an
+author, while staying honest about what the sources can support:
+
+1. Build author-grounded personas that answer from multiple works and cite
+   their sources, while distinguishing documented views from interpretation.
+2. Let multiple personas discuss a topic and make their disagreements and
+   evidence visible to the reader.
+3. Improve evaluations for citation support, faithful attribution, useful
+   disagreement, and honest handling of gaps in the texts.
+
+These are future directions, not current features. A persona would be an AI
+interpretation grounded in surviving works, not the historical person brought
+back to life.
