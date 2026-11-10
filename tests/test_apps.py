@@ -40,6 +40,10 @@ class AppTests(unittest.TestCase):
             self.assertFalse(app.exception)
             initial_suggestion = prince_questions[0] if app.selectbox[0].value == 'pg1232' else war_questions[0]
             self.assertEqual(app.session_state['question'], initial_suggestion)
+            self.assertTrue(any(
+                'Why not chat with my idols first—Machiavelli or Sun Tzu?' in item.value
+                for item in app.markdown
+            ))
 
             # Switching to The Prince initializes its first prompt.
             app.selectbox[0].set_value('pg1232').run()
@@ -57,6 +61,10 @@ class AppTests(unittest.TestCase):
             app.selectbox[0].set_value('pg132').run()
             self.assertEqual(app.session_state['question'], war_questions[0])
             self.assertTrue(all(any(b.label == question for b in app.button) for question in war_questions))
+            self.assertTrue(any(
+                'Why not chat with my idols first—Machiavelli or Sun Tzu?' in item.value
+                for item in app.markdown
+            ))
             next(b for b in app.button if b.label == war_questions[2]).click().run()
             self.assertEqual(app.text_area[0].value, war_questions[2])
             generate.assert_not_called()

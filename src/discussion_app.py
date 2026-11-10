@@ -72,8 +72,8 @@ try:
         # Ordinary Streamlit reruns preserve both suggested and custom questions.
         st.session_state['question'] = suggestions[0] if suggestions else ''
     if suggestions:
-        st.markdown("## Not sure where to start?")
-        st.caption("Choose a question below, then click Generate cited answer to see an answer with supporting passages.")
+        st.markdown("## Not sure where to start? Why not chat with my idols first—Machiavelli or Sun Tzu?")
+        st.caption("Choose a question below to get the conversation started, then click Generate cited answer to see an answer with supporting passages.")
         suggestion_columns = st.columns(3)
         for index, suggestion in enumerate(suggestions):
             with suggestion_columns[index]:
