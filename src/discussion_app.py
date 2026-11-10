@@ -82,7 +82,7 @@ try:
                     key=f"suggested-question-{selected_book}-{index}",
                     on_click=select_suggested_question,
                     args=(suggestion,),
-                    use_container_width=True,
+                    width="stretch",
                 )
     st.markdown("<div class='eyebrow'>CURRENTLY READING</div>", unsafe_allow_html=True)
     st.subheader(book['title'])

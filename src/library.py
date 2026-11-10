@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PACKAGED_LIBRARY_DIR = PROJECT_ROOT / 'demo_library'
 DATA_DIR = (PROJECT_ROOT / 'demo_library' if os.getenv('DIALOGUE_DEMO_MODE') == '1'
             else PROJECT_ROOT / 'data' / 'processed')
 DEFAULT_BOOK_ID = 'pg1232'
@@ -57,36 +58,56 @@ def resolve_metadata(soup, overrides=None):
     return metadata
 
 
-def book_paths(book_id=DEFAULT_BOOK_ID, data_dir=DATA_DIR):
+def book_paths(book_id=DEFAULT_BOOK_ID, data_dir=None):
     if not re.fullmatch(r'[A-Za-z0-9_-]+', book_id):
         raise ValueError('Invalid book ID')
-    data_dir = Path(data_dir)
+    default_directory = data_dir is None
+    data_dir = Path(DATA_DIR if data_dir is None else data_dir)
     bundle = data_dir / book_id
     if bundle.is_dir():
         return bundle / 'book.json', bundle / 'passages.json', bundle / 'vectors.npz'
     stem = EDITIONS.get(book_id, {}).get('stem', book_id)
-    return tuple(data_dir / f'{stem}{suffix}' for suffix in ('.json', '_passages.json', '_vectors.npz'))
+    paths = tuple(data_dir / f'{stem}{suffix}' for suffix in ('.json', '_passages.json', '_vectors.npz'))
+    if (default_directory and os.getenv('DIALOGUE_DEMO_MODE') != '1'
+            and not any(path.exists() for path in paths)):
+        packaged_paths = tuple(
+            PACKAGED_LIBRARY_DIR / f'{stem}{suffix}'
+            for suffix in ('.json', '_passages.json', '_vectors.npz')
+        )
+        if all(path.is_file() for path in packaged_paths):
+            return packaged_paths
+    return paths
 
 
-def catalog(data_dir=DATA_DIR):
+def catalog(data_dir=None):
     """Discover only complete indexes; unpublished staging directories are ignored."""
-    data_dir = Path(data_dir)
-    candidates = list(data_dir.glob('*.json'))
-    candidates += [p for p in data_dir.glob('*/book.json') if not p.parent.name.startswith('.')]
-    books = {}
-    for path in candidates:
-        if path.stem.endswith('_passages'):
-            continue
-        try:
-            book = json.loads(path.read_text(encoding='utf-8'))
-            book_id = book['book_id']
-            paths = book_paths(book_id, data_dir)
-            if path.resolve() != paths[0].resolve() or not all(p.is_file() for p in paths):
+    use_default_directory = data_dir is None
+
+    def scan(directory):
+        directory = Path(directory)
+        candidates = list(directory.glob('*.json'))
+        candidates += [p for p in directory.glob('*/book.json') if not p.parent.name.startswith('.')]
+        found = {}
+        for path in candidates:
+            if path.stem.endswith('_passages'):
                 continue
-            books[book_id] = {key: book.get(key) for key in
-                ('book_id', 'title', 'author', 'translator', 'language', 'format')}
-        except (OSError, ValueError, KeyError, TypeError):
-            continue
+            try:
+                book = json.loads(path.read_text(encoding='utf-8'))
+                book_id = book['book_id']
+                paths = book_paths(book_id, directory)
+                if path.resolve() != paths[0].resolve() or not all(p.is_file() for p in paths):
+                    continue
+                found[book_id] = {key: book.get(key) for key in
+                    ('book_id', 'title', 'author', 'translator', 'language', 'format')}
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+        return found
+
+    directory = DATA_DIR if data_dir is None else data_dir
+    books = scan(directory)
+    if use_default_directory and os.getenv('DIALOGUE_DEMO_MODE') != '1':
+        for book_id, metadata in scan(PACKAGED_LIBRARY_DIR).items():
+            books.setdefault(book_id, metadata)
     return books
 
 

@@ -38,8 +38,8 @@ class AppTests(unittest.TestCase):
                 patch('answer_question.generate_answer') as generate:
             app = AppTest.from_file(str(ROOT/'src'/'discussion_app.py'), default_timeout=30).run()
             self.assertFalse(app.exception)
-            initial_suggestion = prince_questions[0] if app.selectbox[0].value == 'pg1232' else war_questions[0]
-            self.assertEqual(app.session_state['question'], initial_suggestion)
+            self.assertEqual(app.selectbox[0].value, 'pg1232')
+            self.assertEqual(app.session_state['question'], prince_questions[0])
             self.assertTrue(any(
                 'Why not chat with my idols first—Machiavelli or Sun Tzu?' in item.value
                 for item in app.markdown

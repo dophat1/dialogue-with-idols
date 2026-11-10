@@ -38,10 +38,13 @@ Open **http://127.0.0.1:8501**.
 
 `src/demo_app.py` is a Streamlit Community Cloud entry point for reviewers.
 It includes *The Prince* and *The Art of War* as ready-to-search sample books,
-so visitors can try **Find passages** immediately. The public demo does not
+with *The Prince* selected first so visitors can start asking questions right
+away. The discussion and search pages share an original literary header image.
+The public demo does not
 allow imports or save discussions on the server. Answers remain in the current
 browser session, with up to three generations per session. The local app above
-keeps the full import and saved-discussion workflow.
+also starts with *The Prince* and keeps the full import and saved-discussion
+workflow for adding more books.
 
 To deploy the demo from this public GitHub repository:
 

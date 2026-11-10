@@ -1,5 +1,10 @@
 """Shared visual styling for the reading and discussion pages."""
+from pathlib import Path
+
 import streamlit as st
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+HERO_IMAGE = PROJECT_ROOT / "assets" / "reading-room.png"
 
 
 def apply_theme():
@@ -46,6 +51,11 @@ def apply_theme():
           line-height: 1.7;
           margin-top: -.5rem;
           margin-bottom: 1.6rem;
+        }
+        [data-testid="stImage"] img {
+          border: 1px solid var(--line);
+          border-radius: 20px;
+          box-shadow: 0 14px 38px rgba(45, 35, 52, .09);
         }
         [data-testid="stForm"] {
           background: rgba(255, 255, 255, .78);
@@ -106,6 +116,14 @@ def apply_theme():
 
 
 def page_intro(kicker, title, description):
-    st.markdown(f'<div class="eyebrow">{kicker}</div>', unsafe_allow_html=True)
-    st.title(title)
-    st.markdown(f'<div class="hero-copy">{description}</div>', unsafe_allow_html=True)
+    copy, visual = st.columns([1, 1.05], gap="large", vertical_alignment="center")
+    with copy:
+        st.markdown(f'<div class="eyebrow">{kicker}</div>', unsafe_allow_html=True)
+        st.title(title)
+        st.markdown(f'<div class="hero-copy">{description}</div>', unsafe_allow_html=True)
+    with visual:
+        st.image(
+            str(HERO_IMAGE),
+            caption="Machiavelli and Sun Tzu meet across an open book.",
+            width="stretch",
+        )

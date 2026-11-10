@@ -3,7 +3,7 @@ import os
 import streamlit as st
 
 from ingest import import_bytes, import_source, load_embedder
-from library import DEFAULT_EMBEDDING_MODEL, catalog
+from library import DEFAULT_BOOK_ID, DEFAULT_EMBEDDING_MODEL, catalog
 from retrieval import RetrievalModel, load_reranker
 
 
@@ -57,7 +57,9 @@ def library_controls():
                 else 'Start by importing a Gutenberg book in the sidebar. You can use a book number, URL, or downloaded file.')
         st.stop()
     if st.session_state.get('source_book') not in books:
-        st.session_state['source_book'] = next(iter(books))
+        st.session_state['source_book'] = (
+            DEFAULT_BOOK_ID if DEFAULT_BOOK_ID in books else next(iter(books))
+        )
     selected = st.selectbox('Source book', options=list(books), key='source_book',
         format_func=lambda key: f"{books[key]['title']} · {books[key]['author']}" +
             (f" · {key[-6:]}" if '_' in key else ''))

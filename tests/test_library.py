@@ -12,7 +12,7 @@ import numpy as np
 from bs4 import BeautifulSoup
 
 from src.library import (resolve_metadata, fingerprint, source_link, saved_source_link,
-                         run_book_id, book_paths)
+                         run_book_id, book_paths, catalog)
 from src.create_passages import create_passages
 from src.semantic_search import load_search_data
 from src.answer_question import generate_answer, Answer, Claim
@@ -27,6 +27,14 @@ class Tokenizer:
 
 
 class LibraryTests(unittest.TestCase):
+    def test_packaged_prince_is_available_without_local_imports(self):
+        with tempfile.TemporaryDirectory() as directory, patch('src.library.DATA_DIR', Path(directory)):
+            books = catalog()
+            self.assertIn('pg1232', books)
+            self.assertEqual(books['pg1232']['title'], 'The Prince')
+            self.assertEqual(book_paths('pg1232')[0].name, 'the_prince.json')
+            self.assertEqual(load_search_data('pg1232').book['title'], 'The Prince')
+
     def test_metadata_detection_overrides_and_unknown_edition(self):
         html = '<meta name="dc.title" content="A"><meta name="dc.creator" content="B"><meta name="marcrel.trl" content="C"><meta property="og:url" content="https://www.gutenberg.org/cache/epub/132/pg132-images.html">'
         soup = BeautifulSoup(html, 'html.parser')
