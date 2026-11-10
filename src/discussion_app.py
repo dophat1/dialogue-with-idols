@@ -7,6 +7,7 @@ from semantic_search import load_search_data
 from library import run_book_id, saved_source_link
 from library_ui import library_controls, book_details, cached_embedder, render_passages
 from retrieval import retrieve
+from theme import apply_theme, page_intro
 
 import json
 import os
@@ -20,6 +21,7 @@ st.set_page_config(
 )
 DEMO_MODE = os.getenv('DIALOGUE_DEMO_MODE') == '1'
 DEMO_ANSWER_LIMIT = 3
+apply_theme()
 
 
 @st.cache_resource
@@ -27,7 +29,11 @@ def load_embedder(model_name, language=None):
     return cached_embedder(model_name, language)
 
 
-st.title("Dialogue with Idols")
+page_intro(
+    "A reading room for great ideas",
+    "Dialogue with Idols",
+    "Meet the ideas in a book, follow the passages, and start a conversation grounded in the text.",
+)
 selected_book = library_controls()
 if st.session_state.get('active_book') != selected_book:
     st.session_state.pop('discussion_run', None)
@@ -42,7 +48,9 @@ try:
     search_data = load_search_data(selected_book)
     embedder = load_embedder(search_data[-1], search_data.book.get('language'))
     book = search_data.book
-    st.caption(f"{book['title']} · {book['author']} · Translation: {book.get('translator') or 'not specified'}")
+    st.markdown("<div class='eyebrow'>CURRENTLY READING</div>", unsafe_allow_html=True)
+    st.subheader(book['title'])
+    st.caption(f"{book['author']} · {book.get('translator') or 'Translation not specified'}")
     book_details(book)
 except (OSError, ValueError, KeyError) as error:
     st.error(f"Could not load the book: {error}")
@@ -124,6 +132,8 @@ with st.sidebar:
             "It does not generate another answer."
         )
 
+st.markdown("## What would you like to ask?")
+st.caption("Ask about an idea, test an interpretation, or look for a moment in the text.")
 with st.form("discussion"):
     current_run = st.session_state.get("discussion_run")
 
@@ -133,7 +143,7 @@ with st.form("discussion"):
             + current_run["question"][:150]
         )
     question = st.text_area(
-        "Your question or opinion",
+        "Your question",
         placeholder=(
             "What trade-offs does this book describe? "
             "Challenge my position."
@@ -161,8 +171,8 @@ with st.form("discussion"):
         "You can enter a specific research query to focus the search."
     )
 
-    preview_submitted = st.form_submit_button("Find passages")
-    submitted = st.form_submit_button("Generate cited answer")
+    preview_submitted = st.form_submit_button("Find passages", type="secondary")
+    submitted = st.form_submit_button("Generate cited answer", type="primary")
 
 
 if preview_submitted:
@@ -179,7 +189,7 @@ if preview_submitted:
 
 preview = st.session_state.get('retrieved_preview')
 if preview and preview['book_id'] == selected_book:
-    st.subheader('Retrieved passages')
+    st.markdown("## Passages to explore")
     st.caption(f"Search: {preview['query']}")
     render_passages(search_data, preview['results'])
 
